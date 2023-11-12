@@ -6,6 +6,21 @@ then
   exit
 fi
 
+if ! find "$1" -mindepth 4 -maxdepth 4 -type f | grep -E "flac|mp3|wav|dsd|dsf" 1>/dev/null
+then
+  echo "No music file found, check that your file structure is Music/Genres/Artists/Albums/Songs"
+  echo "Exting"
+  exit
+fi
+
+if [ "$1" = "-a" ];
+then
+  echo
+fi
+
+#
+# Token management
+#
 if [ ! -f ".keys.json" ];
 then
   echo "no .keys.conf file found"
@@ -15,7 +30,6 @@ then
 fi
 
 TOKEN="$([ -f ".token" ] && cat ".token")"
-FORCE_WRITE="$(< .keys.json jq ".FORCE_WRITE" | sed "s/\"//g")"
 
 if [ ! -f ".token" ];
 then
@@ -30,71 +44,70 @@ then
   echo "$TOKEN" > ".token"
 fi
 
-test="$(curl --request GET \
+test="$(curl -s --request GET \
     --url "https://api.spotify.com/v1/search?q=DavidBowie&type=artist&limit=1" \
     --header "Authorization: Bearer $TOKEN")"
 
+name="$(echo "$test" \
+              | jq ".artists.items.[].name" \
+              | sed "s/\"//g")"
 
-if [ "$(grep  error <<< "$test")" ];
+if [ "$(grep  error <<< "$name")" ];
 then
   rm ".token"
   echo "token expired, please lunch again"
   exit
 fi
 
+#
+# loop over folders
+#
+
 for dir in "$1"/*/*/
 do
-  dir="${dir%*/}" # remove the trailing "/"
-  dir_nospaces="${dir##*/}" # print everything after the final "/"
+  dir="${dir%*/}"
+  dir_nospaces="${dir##*/}"
+  echo "$dir_nospaces"
   dir_nospaces="${dir_nospaces// /}"
-  echo $dir_nospaces
   id="$([ -f "$dir"/.api.json ] && (cat "$dir"/.api.json | jq ".id" | sed "s/\"//g"))"
   if [ -n "$id" ];
   then
-    info="$(curl --request GET \
-      --url https://api.spotify.com/v1/artists/"$id" \
-      --header "Authorization: Bearer $TOKEN")"
+    info="$(curl -s --request GET \
+        --url https://api.spotify.com/v1/artists/"$id" \
+        --header "Authorization: Bearer $TOKEN")"
 
     image="$(echo "$info" \
-            | jq ".images.[0].url" \
-            | sed "s/\"//g")"
+              | jq ".images.[0].url" \
+              | sed "s/\"//g")"
 
     name="$(echo "$info" \
-            | jq ".name" \
-            | sed "s/\"//g")"
+              | jq ".name" \
+              | sed "s/\"//g")"
 
     id="$(echo "$info" \
-            | jq ".id" \
-            | sed "s/\"//g")"
+              | jq ".id" \
+              | sed "s/\"//g")"
 
-    curl "$image" > "$dir"/artist.jpeg
+    curl -s "$image" > "$dir"/artist.jpeg
     jq --null-input "{\"name\":\"$name\", \"id\":\"$id\"}" > "$dir"/.api.json
   else
-    info="$(curl --request GET \
-            --url "https://api.spotify.com/v1/search?q=$dir_nospaces&type=artist&limit=1" \
-            --header "Authorization: Bearer $TOKEN")"
-
-
-    if [ "$(grep  error <<< "$info")" ];
-    then
-      rm ".token"
-      echo "token expired, please lunch again"
-      exit
-    fi
+    info="$(curl -s --request GET \
+              --url "https://api.spotify.com/v1/search?q=$dir_nospaces&type=artist&limit=1" \
+              --header "Authorization: Bearer $TOKEN")"
 
     id="$(echo "$info" \
-            | jq ".artists.items.[].id" \
-            | sed "s/\"//g")"
+              | jq ".artists.items.[].id" \
+              | sed "s/\"//g")"
 
     name="$(echo "$info" \
-            | jq ".artists.items.[].name" \
-            | sed "s/\"//g")"
+              | jq ".artists.items.[].name" \
+              | sed "s/\"//g")"
 
     image="$(echo "$info" \
-            | jq ".artists.items.[].images.[0].url" \
-            | sed "s/\"//g")"
+              | jq ".artists.items.[].images.[0].url" \
+              | sed "s/\"//g")"
 
-    curl "$image" > "$dir"/artist.jpeg
+    curl -s "$image" > "$dir"/artist.jpeg
     jq --null-input "{\"name\":\"$name\", \"id\":\"$id\"}" > "$dir"/.api.json
 
   fi
