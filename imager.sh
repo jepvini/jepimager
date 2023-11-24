@@ -44,6 +44,22 @@ then
   echo "token expired, please lunch again"
   exit
 fi
+#
+# check files
+#
+if [ "$1" = "-c" ];
+then
+  if [ -z "$2" ];
+  then
+    echo "provide the folder"
+    exit
+  fi
+  for dir in "$1"/*
+  do
+    echo "$dir"
+    flac -wst "$dir"/*.flac
+  done
+fi
 
 #
 # specific folder option
