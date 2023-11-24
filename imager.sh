@@ -59,6 +59,8 @@ then
     echo "$dir"
     flac -wst "$dir"/*.flac
   done
+
+  exit
 fi
 
 #
@@ -117,7 +119,6 @@ then
     jq --null-input "{\"name\":\"$name\", \"id\":\"$id\"}" > "$dir"/.api.json
   fi
   id="$([ -f "$dir"/.api.json ] && (cat "$dir"/.api.json | jq ".id" | sed "s/\"//g"))"
-
 
   exit
 fi
