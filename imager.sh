@@ -109,7 +109,7 @@ fi
 # loop over folders
 #
 
-songs_number="$(find MUSIC/ -mindepth 4 -maxdepth 4 -type f | grep -E -c "flac|mp3|wav|dsd|dsf")"
+songs_number="$(find MUSIC/ -mindepth 3 -maxdepth 3 -type f | grep -E -c "flac|mp3|wav|dsd|dsf")"
 if [ "$songs_number" -lt 10 ]; # arbitrary number
 then
   echo "No music file found, check that your file structure is Music/Genres/Artists/Albums/Songs"
@@ -117,7 +117,7 @@ then
   exit
 fi
 
-for dir in "$1"/*/*/
+for dir in "$1"/*/
 do
   dir="${dir%*/}"
   dir_nospaces="${dir##*/}"
@@ -166,8 +166,8 @@ do
   fi
 done
 
-images_number="$(find "$1" -mindepth 3 -maxdepth 3 -type f | grep -E -c "jpeg")"
-errors="$(find MUSIC/ -mindepth 3 -maxdepth 3 -type f -size -1k | grep -E "jpeg")"
+images_number="$(find "$1" -mindepth 2 -maxdepth 2 -type f | grep -E -c "jpeg")"
+errors="$(find "$1" -mindepth 2 -maxdepth 2 -type f -size -1k | grep -E "jpeg")"
 echo
 echo "Done"
 echo "$images_number images set"
