@@ -58,8 +58,9 @@ then
   dir="${2%*/}"
   dir_nospaces="${dir##*/}"
   echo "$dir_nospaces"
-  echo "$dir"
+  # echo "$dir"
   dir_nospaces="${dir_nospaces// /}"
+  id="$([ -f "$dir"/.api.json ] && (cat "$dir"/.api.json | jq ".id" | sed "s/\"//g"))"
   if [ -n "$id" ];
   then
     info="$(curl -s --request GET \
@@ -100,7 +101,6 @@ then
     curl -s "$image" > "$dir"/artist.jpeg
     jq --null-input "{\"name\":\"$name\", \"id\":\"$id\"}" > "$dir"/.api.json
   fi
-  id="$([ -f "$dir"/.api.json ] && (cat "$dir"/.api.json | jq ".id" | sed "s/\"//g"))"
 
   exit
 fi
@@ -109,7 +109,7 @@ fi
 # loop over folders
 #
 
-songs_number="$(find MUSIC/ -mindepth 3 -maxdepth 3 -type f | grep -E -c "flac|mp3|wav|dsd|dsf")"
+songs_number="$(find "$1" -mindepth 3 -maxdepth 3 -type f | grep -E -c "flac|mp3|wav|dsd|dsf")"
 if [ "$songs_number" -lt 10 ]; # arbitrary number
 then
   echo "No music file found, check that your file structure is Music/Genres/Artists/Albums/Songs"
