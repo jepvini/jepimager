@@ -5,8 +5,8 @@ get the artist image for your music collection useing the spotify API
 *by jep*
 
 ### USAGE
-The sript is designed to work in a file structure with `Music/Genre/Artist/Albums/Tracks`
-The `Artist` name must have depth equal to 2 related to the argument (`Music` in this case)
+The sript is designed to work in a file structure with `Music/Artist/Albums/Tracks`
+The `Artist` name must have depth equal to 1 related to the argument (`Music` in this case)
 
 - Launch the script, it should exit creating the `.keys.json` file
 - Add the api key and the secret key to the file
