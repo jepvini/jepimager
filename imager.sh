@@ -1,25 +1,24 @@
 #!/usr/bin/env bash
 
-if [ -z "$1" ];
-then
-  echo "provide the folder name"
-  exit
-fi
+#####################################################################################################
+#                                                                                                   #
+#                                         Token management                                          #
+#                                                                                                   #
+#####################################################################################################
 
-
-#
-# Token management
-#
-if [ ! -f ".keys.json" ];
+# if the file does not exist it will create a sample one
+if [ ! -f ".conf.json" ];
 then
-  echo "no .keys.conf file found"
+  echo "no .conf.json file found"
   echo "creating one"
-  jq --null-input '{"CLIENT_ID":"", "CLIENT_SECRET":"","FORCE_WRITE":"0", "LIMIT":"20", "TOKEN":""}' > .keys.json
+  jq --null-input '{"CLIENT_ID":"", "CLIENT_SECRET":"","FORCE_WRITE":"0", "LIMIT":"20", "DEFAULT_DIR":""}' > .conf.json
   exit
 fi
 
+# check if there is a token already created
 TOKEN="$([ -f ".token" ] && cat ".token")"
 
+# creates the token if it does not exist
 if [ ! -f ".token" ];
 then
   CLIENT_ID="$(< .keys.json jq ".CLIENT_ID" | sed "s/\"//g")"
@@ -34,20 +33,55 @@ then
   echo "$TOKEN" > ".token"
 fi
 
+# tests if the token works
 test="$(curl -s --request GET \
     --url "https://api.spotify.com/v1/search?q=DavidBowie&type=artist&limit=1" \
     --header "Authorization: Bearer $TOKEN")"
 
+
+# if it doesn't it will delete it and rerunnng the script will create a fresh one
 if [ "$(grep  error <<< "$test")" ];
 then
   rm ".token"
-  echo "token expired, please lunch again"
+  echo "token expired, please run again the script"
   exit
 fi
 
-#
-# specific folder option
-#
+
+
+#####################################################################################################
+#                                                                                                   #
+#                                           Arg management                                          #
+#                                                                                                   #
+#####################################################################################################
+
+# The script can be launched without a folder to set the token
+if [ -z "$1" ];
+then
+  DIR="$(< .conf.json jq ".DEFAULT_DIR" | sed "s/\"//g")"
+  if [ -n "$DIR" ];
+  then
+    if [ ! -d "$DIR" ];
+    then
+      echo "invalid folder in .conf.json file"
+      exit
+    fi
+  else
+    echo "provide the folder name"
+    exit
+  fi
+else
+  DIR="$1"
+fi
+
+
+
+#####################################################################################################
+#                                                                                                   #
+#                                       Specific folder option                                      #
+#                                                                                                   #
+#####################################################################################################
+
 if [ "$1" = "-a" ];
 then
   if [ -z "$2" ];
@@ -105,24 +139,28 @@ then
   exit
 fi
 
-#
-# loop over folders
-#
+#####################################################################################################
+#                                                                                                   #
+#                                           Loop over folders                                       #
+#                                                                                                   #
+#####################################################################################################
 
-songs_number="$(find "$1" -mindepth 2 -maxdepth 2 -type f | grep -E -c "flac|mp3|wav|dsd|dsf")"
+songs_number="$(find "$DIR" -mindepth 3 -maxdepth 3 -type f | grep -E -c "flac|mp3|wav|dsd|dsf")"
 if [ "$songs_number" -lt 10 ]; # arbitrary number
 then
-  echo "No music file found, check that your file structure is Music/Genres/Artists/Albums/Songs"
+  echo "No music file found, check that your file structure is Music/Artists/Albums/Songs"
   echo "Exting"
   exit
 fi
 
-for dir in "$1"/*/
+for dir in "$DIR"/*/
 do
   dir="${dir%*/}"
   dir_nospaces="${dir##*/}"
-  echo "$dir_nospaces"
+  # echo "$dir_nospaces"
   dir_nospaces="${dir_nospaces// /}"
+  echo "$dir"
+  echo "$dir_nospaces"
   id="$([ -f "$dir"/.api.json ] && (cat "$dir"/.api.json | jq ".id" | sed "s/\"//g"))"
   if [ -n "$id" ];
   then
@@ -166,8 +204,8 @@ do
   fi
 done
 
-images_number="$(find "$1" -mindepth 1 -maxdepth 1 -type f | grep -E -c "jpeg")"
-errors="$(find "$1" -mindepth 1 -maxdepth 1 -type f -size -1k | grep -E "jpeg")"
+images_number="$(find "$DIR" -mindepth 2 -maxdepth 2 -type f | grep -E -c "jpeg")"
+errors="$(find "$DIR" -mindepth 2 -maxdepth 2 -type f -size -1k | grep -E "jpeg")"
 echo
 echo "Done"
 echo "$images_number images set"
