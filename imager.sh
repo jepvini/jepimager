@@ -157,10 +157,8 @@ for dir in "$DIR"/*/
 do
   dir="${dir%*/}"
   dir_nospaces="${dir##*/}"
-  # echo "$dir_nospaces"
-  dir_nospaces="${dir_nospaces// /}"
-  echo "$dir"
   echo "$dir_nospaces"
+  dir_nospaces="${dir_nospaces// /}"
   id="$([ -f "$dir"/.api.json ] && (cat "$dir"/.api.json | jq ".id" | sed "s/\"//g"))"
   if [ -n "$id" ];
   then
