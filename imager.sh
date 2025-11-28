@@ -22,9 +22,26 @@ fi
 
 # $1 should be the dir with the artist name
 
+name_from_path ()
+{
+  NAME="$(grep -o -P "[^\/]+\/$" <<< "$1" | grep -o -P "[^\/]+")" # Extract name from path
+}
+
+sanitaze_name ()
+{
+  NAME_SANE="$(jq --slurp --raw-input --raw-output @uri <<< "$1")"
+}
+
 function update_image {
-  id="$(jq -r ".id" "$1".api.json)"
-  name="$(jq -r ".name" "$1".api.json)"
+  if [ -f "$1".api.json ]; then
+    id="$(jq -r ".id" "$1".api.json)"
+    name="$(jq -r ".name" "$1".api.json)"
+  else
+    name_from_path "$1"
+    echo "no id found for $NAME"
+    echo "run \"\$ ./imager.sh -f $1\" to fix"
+    return
+  fi
   info="$(curl -s --request GET \
       --url https://api.spotify.com/v1/artists/"$id" \
     --header "Authorization: Bearer $TOKEN")"
@@ -59,19 +76,17 @@ function sync_id {
 
 
 function find_id {
-  NAME="$(grep -o -P "[^\/]+\/$" <<< "$1" | grep -o -P "[^\/]+")" # Extract name from path
-  NAME_SANE=${NAME//,/"%2c"}
-  NAME_SANE=${NAME_SANE//&/"%26"}
-  NAME_SANE=${NAME_SANE// /"%20"}
+  name_from_path "$1"
+  sanitaze_name "$NAME"
   info="$(curl -s --request GET \
-    --url "https://api.spotify.com/v1/search?q=$NAME_SANE&type=artist&limit=1" \
+    --url "https://api.spotify.com/v1/search?q=$NAME_SANE&type=artist&limit=5" \
   --header "Authorization: Bearer $TOKEN")"
 
   id="$(echo "$info" \
-  | jq -r ".artists.items.[].id")"
+  | jq -r ".artists.items.[0].id")"
 
   name="$(echo "$info" \
-  | jq -r ".artists.items.[].name")"
+  | jq -r ".artists.items.[0].name")"
 
   echo "--- $NAME matched with $name"
 
@@ -79,10 +94,8 @@ function find_id {
 }
 
 function find_id_deep {
-  NAME="$(grep -o -P "[^\/]+\/$" <<< "$1" | grep -o -P "[^\/]+")" # Extract name from path
-  NAME_SANE=${NAME//,/"%2c"}
-  NAME_SANE=${NAME_SANE//&/"%26"}
-  NAME_SANE=${NAME_SANE// /"%20"}
+  name_from_path "$1"
+  sanitaze_name "$NAME"
   info="$(curl -s --request GET \
     --url "https://api.spotify.com/v1/search?q=$NAME_SANE&type=artist&limit=10" \
   --header "Authorization: Bearer $TOKEN")"
